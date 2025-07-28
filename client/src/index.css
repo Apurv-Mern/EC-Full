@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Gaming Portfolio Design System - Dark theme with gaming aesthetics */
+
+@layer base {
+  :root {
+    /* Light Theme */
+    --background: 220 23% 97%; /* soft blue-gray */
+    --foreground: 222 47% 11%; /* deep blue-black */
+
+    --card: 0 0% 100%; /* white */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: vibrant purple-blue for light mode */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 262 100% 70%;
+
+    /* Secondary: warm orange for light mode */
+    --secondary: 25 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 14% 96%; /* subtle muted */
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent: cyan for light mode */
+    --accent: 185 90% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 262 83% 58%;
+
+    --radius: 1rem;
+
+    /* Modern Design Colors */
+    --neon-cyan: 185 100% 50%;
+    --neon-purple: 270 100% 60%;
+    --neon-pink: 330 100% 60%;
+    --electric-blue: 210 100% 56%;
+
+    /* Enhanced Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(270 100% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(25 95% 53%), hsl(15 90% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(185 90% 48%), hsl(195 100% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 23% 97%), hsl(220 43% 93%), hsl(262 83% 95%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsla(262, 83%, 58%, 0.3) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsla(185, 90%, 48%, 0.2) 0px, transparent 50%),
+                     radial-gradient(at 0% 50%, hsla(330, 100%, 60%, 0.2) 0px, transparent 50%);
+
+    /* Enhanced Shadows */
+    --shadow-glow: 0 0 60px hsl(262 83% 58% / 0.3);
+    --shadow-card: 0 20px 40px -20px hsl(220 43% 11% / 0.15);
+    --shadow-elevated: 0 30px 60px -30px hsl(220 43% 11% / 0.25);
+    --shadow-neon: 0 0 30px hsl(262 83% 58% / 0.5), 0 0 60px hsl(262 83% 58% / 0.25);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bouncy: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-elastic: all 0.5s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222 47% 11%; /* rich dark blue */
+    --foreground: 213 31% 91%;
+
+    --card: 222 47% 13%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 222 47% 13%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 25 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 223 47% 20%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 185 90% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 223 47% 20%;
+    --input: 223 47% 20%;
+    --ring: 262 83% 58%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 223 47% 20%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 223 47% 20%;
+    --sidebar-ring: 262 83% 58%;
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 11%), hsl(222 47% 15%), hsl(262 83% 20%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsla(262, 83%, 58%, 0.2) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsla(185, 90%, 48%, 0.15) 0px, transparent 50%),
+                     radial-gradient(at 0% 50%, hsla(330, 100%, 60%, 0.15) 0px, transparent 50%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background: var(--gradient-hero);
+    position: relative;
+    min-height: 100vh;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-mesh);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+@layer components {
+  /* Gaming Button Variants */
+  .btn-gaming {
+    @apply relative overflow-hidden bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-semibold py-3 px-8 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-[var(--shadow-glow)] active:scale-95;
+  }
+
+  .btn-secondary-gaming {
+    @apply relative overflow-hidden bg-gradient-to-r from-secondary to-yellow-400 text-secondary-foreground font-semibold py-3 px-8 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95;
+  }
+
+  .btn-outline-gaming {
+    @apply relative border-2 border-primary text-primary bg-transparent font-semibold py-3 px-8 rounded-lg transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:scale-105 hover:shadow-[var(--shadow-glow)];
+  }
+
+  /* Gaming Cards */
+  .card-gaming {
+    @apply bg-card border border-border rounded-xl p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all duration-300 hover:scale-[1.02] hover:border-primary/50;
+  }
+
+  .card-gaming-glow {
+    @apply relative bg-card border border-primary/20 rounded-xl p-6 shadow-[var(--shadow-glow)] hover:shadow-[var(--shadow-elevated)] transition-all duration-300 hover:scale-[1.02];
+  }
+
+  /* Animations */
+  .float-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+  }
+
+  .backdrop-gaming {
+    backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Custom Keyframes */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
+  100% { box-shadow: 0 0 40px hsl(var(--primary) / 0.6); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Loading shimmer effect */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 2s infinite;
+}
