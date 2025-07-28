@@ -3,25 +3,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ArrowRight, Calculator, Download, Mail, Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, ArrowRight, Calculator, Download, Mail, Loader2, AlertCircle, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // API Integration
 import { useStaticData, useCreateEstimation, useCreateEstimationWithContact } from "@/hooks/useApi";
-import { 
-  Currency, 
-  EstimatorFormData, 
-  SoftwareType, 
-  Timeline, 
+import {
+  Currency,
+  EstimatorFormData,
+  SoftwareType,
+  Timeline,
   Feature,
-  CreateEstimationRequest 
+  CreateEstimationRequest
 } from "@/types/api";
+import { EstimationStepSkeleton } from "./ui/estimation-skeletons";
 
 const SoftwareCostEstimator = () => {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<EstimatorFormData>({
     industries: [],
-    softwareType: null,
+    softwareType: [],
     techStack: { backend: "", frontend: "", mobile: "" },
     timeline: null,
     features: [],
@@ -31,25 +36,50 @@ const SoftwareCostEstimator = () => {
   const [showContactForm, setShowContactForm] = useState(false);
 
   // API hooks
-  const { data: staticData, isLoading, error } = useStaticData();
+  const { data, isLoading, isError, refetch } = useStaticData();
+
+  console.log({ data });
   const createEstimationMutation = useCreateEstimation();
   const createEstimationWithContactMutation = useCreateEstimationWithContact();
 
   // Destructure API data
-  const industries = staticData?.industries || [];
-  const softwareTypes = staticData?.softwareTypes || [];
-  const techStacks = staticData?.techStacks || { backend: [], frontend: [], mobile: [] };
-  const timelines = staticData?.timelines || [];
-  const features = staticData?.features || [];
-  const currencies = staticData?.currencies || [];
+  const industries = data?.industries || [];
+  const softwareTypes = data?.softwareTypes || [];
+  const techStacks = data?.techStacks || { backend: [], frontend: [], mobile: [] };
+  const timelines = data?.timelines || [];
+  const features = data?.features || {};
+  const currencies = data?.currencies || [];
+
+  // Helper function to flatten features
+  const getFlattenedFeatures = () => {
+    if (!features || typeof features !== 'object') return [];
+    return Object.values(features).flat();
+  };
+
+  // Helper function to find feature by ID
+  const findFeatureById = (featureId: number) => {
+    const flattenedFeatures = getFlattenedFeatures();
+    return flattenedFeatures.find((f: any) => f.id === featureId);
+  };
+
+  // Helper function to get currency exchange rate
+  const getCurrencyRate = () => {
+    const selectedCurrency = currencies.find(c => c.code === formData.currency);
+    return selectedCurrency?.exchangeRate || 1;
+  };
 
   const calculateTotal = () => {
-    if (!formData.softwareType || !formData.timeline) return 0;
+    if (!formData.softwareType.length || !formData.timeline) return 0;
 
-    const basePrice = formData.softwareType.basePrice[formData.currency];
-    const featuresPrice = formData.features.reduce((total, featureName) => {
-      const feature = features.find((f) => f.name === featureName);
-      return total + (feature?.price[formData.currency] || 0);
+    // Calculate total base price for all selected software types
+    const basePrice = formData.softwareType.reduce((total, softwareType) => {
+      return total + ((softwareType.basePrice || 0) * getCurrencyRate());
+    }, 0);
+
+    // Calculate features price
+    const featuresPrice = formData.features.reduce((total, featureId) => {
+      const feature = findFeatureById(featureId);
+      return total + ((feature?.basePrice || 0) * getCurrencyRate());
     }, 0);
 
     return (basePrice + featuresPrice) * formData.timeline.multiplier;
@@ -63,14 +93,14 @@ const SoftwareCostEstimator = () => {
     currencies.find((c) => c.code === formData.currency)?.symbol || "";
 
   const handleCreateEstimation = async (withContact = false) => {
-    if (!formData.softwareType || !formData.timeline) {
+    if (!formData.softwareType.length || !formData.timeline) {
       toast.error("Please complete all required fields");
       return;
     }
 
     const estimationData: CreateEstimationRequest = {
       industries: formData.industries,
-      softwareType: formData.softwareType.name,
+      softwareType: formData.softwareType.map(st => st.name),
       techStack: formData.techStack,
       timeline: formData.timeline.label,
       timelineMultiplier: formData.timeline.multiplier,
@@ -86,12 +116,33 @@ const SoftwareCostEstimator = () => {
     try {
       if (withContact) {
         await createEstimationWithContactMutation.mutateAsync(estimationData);
+        toast.success("Estimation created and sent to your email!");
       } else {
         await createEstimationMutation.mutateAsync(estimationData);
       }
     } catch (error) {
-      // Error is handled by the mutation hooks
       console.error("Failed to create estimation:", error);
+    }
+  };
+
+  const handleSubmitWithContact = async () => {
+    if (!contactInfo.name || !contactInfo.email) {
+      toast.error("Please fill in all required contact fields");
+      return;
+    }
+
+    if (!formData.softwareType.length || !formData.timeline) {
+      toast.error("Please complete all estimation steps first");
+      return;
+    }
+
+    try {
+      await handleCreateEstimation(true);
+      setShowContactForm(false);
+      // Reset contact form
+      setContactInfo({ name: "", email: "", company: "" });
+    } catch (error) {
+      console.error("Failed to submit with contact:", error);
     }
   };
 
@@ -100,37 +151,29 @@ const SoftwareCostEstimator = () => {
     return (
       <div className="w-full flex justify-center mt-20 md:mt-24">
         <div className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 md:px-8 py-8 md:py-12 bg-background rounded-2xl shadow-xl border border-border">
-          <div className="text-center space-y-6">
-            <Skeleton className="h-10 w-3/4 mx-auto" />
-            <Skeleton className="h-6 w-1/2 mx-auto" />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-12" />
-              ))}
-            </div>
-          </div>
+          <EstimationStepSkeleton step={step} />
         </div>
       </div>
-    );
-  }
+    )
+  };
 
   // Error state
-  if (error) {
+  if (isError) {
     return (
       <div className="w-full flex justify-center mt-20 md:mt-24">
         <div className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 md:px-8 py-8 md:py-12 bg-background rounded-2xl shadow-xl border border-border">
-          <div className="text-center space-y-6">
+          <Alert variant="destructive">
             <AlertCircle className="w-16 h-16 text-destructive mx-auto" />
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-destructive">Failed to Load Data</h2>
-              <p className="text-muted-foreground">
+              <AlertTitle>Failed to Load Data</AlertTitle>
+              <AlertDescription>
                 We're having trouble loading the estimation data. Please check your connection and try again.
-              </p>
+              </AlertDescription>
             </div>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
+            <Button onClick={() => refetch()} className="mt-4">
+              <RefreshCw className="w-5 h-5 mr-2 inline-block" />Try Again
             </Button>
-          </div>
+          </Alert>
         </div>
       </div>
     );
@@ -168,23 +211,23 @@ const SoftwareCostEstimator = () => {
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {industries.map((industry) => {
-                const selected = formData.industries.includes(industry);
+              {industries.map(({ id, name }: any) => {
+                const selected = formData.industries.includes(name);
                 return (
                   <Button
-                    key={industry}
+                    key={id}
                     variant={selected ? "default" : "outline"}
                     className="h-12"
                     onClick={() => {
                       setFormData({
                         ...formData,
                         industries: selected
-                          ? formData.industries.filter((i) => i !== industry)
-                          : [...formData.industries, industry],
+                          ? formData.industries.filter((i) => i !== name)
+                          : [...formData.industries, name],
                       });
                     }}
                   >
-                    {industry}
+                    {name}
                   </Button>
                 );
               })}
@@ -198,30 +241,32 @@ const SoftwareCostEstimator = () => {
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Choose Software Type</h2>
               <p className="text-muted-foreground">
-                Select the type of software you need
+                Select the type of software you need (you can select multiple)
               </p>
             </div>
             <div className="grid gap-4">
-              {softwareTypes.map((type) => (
-                <Button
-                  key={type.name}
-                  variant={
-                    formData.softwareType?.name === type.name
-                      ? "default"
-                      : "outline"
-                  }
-                  className="h-16 justify-between"
-                  onClick={() =>
-                    setFormData({ ...formData, softwareType: type })
-                  }
-                >
-                  <span>{type.name}</span>
-                  <span className="font-bold">
-                    From {getCurrencySymbol()}
-                    {formatPrice(type.basePrice[formData.currency])}
-                  </span>
-                </Button>
-              ))}
+              {softwareTypes.map((type) => {
+                const isSelected = formData.softwareType.some(st => st.id === type.id);
+                return (
+                  <Button
+                    key={type.id}
+                    variant={isSelected ? "default" : "outline"}
+                    className="h-16 justify-between"
+                    onClick={() => {
+                      const newSoftwareTypes = isSelected
+                        ? formData.softwareType.filter(st => st.id !== type.id)
+                        : [...formData.softwareType, type];
+                      setFormData({ ...formData, softwareType: newSoftwareTypes });
+                    }}
+                  >
+                    <span>{type.name}</span>
+                    <span className="font-bold">
+                      From {getCurrencySymbol()}
+                      {formatPrice((type.basePrice || 0) * getCurrencyRate())}
+                    </span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
         );
@@ -241,60 +286,12 @@ const SoftwareCostEstimator = () => {
               <div>
                 <h3 className="font-semibold mb-3">Backend Technology</h3>
                 <div className="flex flex-wrap gap-2">
-                  {techStacks.backend.map((tech) => (
-                    <Button
-                      key={tech}
-                      variant={
-                        formData.techStack.backend === tech
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          techStack: { ...formData.techStack, backend: tech },
-                        })
-                      }
-                    >
-                      {tech}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-3">Frontend Technology</h3>
-                <div className="flex flex-wrap gap-2">
-                  {techStacks.frontend.map((tech) => (
-                    <Button
-                      key={tech}
-                      variant={
-                        formData.techStack.frontend === tech
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          techStack: { ...formData.techStack, frontend: tech },
-                        })
-                      }
-                    >
-                      {tech}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              {formData.softwareType?.name === "Mobile App" && (
-                <div>
-                  <h3 className="font-semibold mb-3">Mobile Technology</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {techStacks.mobile.map((tech) => (
+                  {techStacks.backend.map(({ id, name }: any) => {
+                    return (
                       <Button
-                        key={tech}
+                        key={id}
                         variant={
-                          formData.techStack.mobile === tech
+                          formData.techStack.backend === name
                             ? "default"
                             : "outline"
                         }
@@ -302,11 +299,61 @@ const SoftwareCostEstimator = () => {
                         onClick={() =>
                           setFormData({
                             ...formData,
-                            techStack: { ...formData.techStack, mobile: tech },
+                            techStack: { ...formData.techStack, backend: name },
                           })
                         }
                       >
-                        {tech}
+                        {name}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3">Frontend Technology</h3>
+                <div className="flex flex-wrap gap-2">
+                  {techStacks.frontend.map(({ id, name }: any) => (
+                    <Button
+                      key={id}
+                      variant={
+                        formData.techStack.frontend === name
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          techStack: { ...formData.techStack, frontend: name },
+                        })
+                      }
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {formData.softwareType.some(st => st.name === "Mobile App") && (
+                <div>
+                  <h3 className="font-semibold mb-3">Mobile Technology</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {techStacks.mobile.map(({ id, name }: any) => (
+                      <Button
+                        key={id}
+                        variant={
+                          formData.techStack.mobile === name
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            techStack: { ...formData.techStack, mobile: name },
+                          })
+                        }
+                      >
+                        {name}
                       </Button>
                     ))}
                   </div>
@@ -352,7 +399,10 @@ const SoftwareCostEstimator = () => {
           </div>
         );
 
-      case 5:
+      case 5: {
+        // Flatten the grouped features into a single array
+        const flattenedFeatures = getFlattenedFeatures();
+
         return (
           <div className="space-y-6">
             <div className="text-center">
@@ -364,26 +414,33 @@ const SoftwareCostEstimator = () => {
               </p>
             </div>
             <div className="grid gap-3">
-              {features.map((feature) => (
+              {flattenedFeatures.map((feature: any) => (
                 <div
-                  key={feature.name}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    formData.features.includes(feature.name)
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  }`}
+                  key={feature.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.features.includes(feature.id)
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                    }`}
                   onClick={() => {
-                    const newFeatures = formData.features.includes(feature.name)
-                      ? formData.features.filter((f) => f !== feature.name)
-                      : [...formData.features, feature.name];
+                    const newFeatures = formData.features.includes(feature.id)
+                      ? formData.features.filter((f) => f !== feature.id)
+                      : [...formData.features, feature.id];
                     setFormData({ ...formData, features: newFeatures });
                   }}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">{feature.name}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{feature.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {feature.description}
+                      </span>
+                      <span className="text-xs text-muted-foreground mt-1">
+                        {feature.estimatedHours}h • {feature.complexity}
+                      </span>
+                    </div>
                     <span className="text-primary font-bold">
                       +{getCurrencySymbol()}
-                      {formatPrice(feature.price[formData.currency])}
+                      {formatPrice((feature.basePrice || 0) * getCurrencyRate())}
                     </span>
                   </div>
                 </div>
@@ -391,6 +448,7 @@ const SoftwareCostEstimator = () => {
             </div>
           </div>
         );
+      }
 
       case 6:
         return (
@@ -406,7 +464,8 @@ const SoftwareCostEstimator = () => {
                   variant={
                     formData.currency === currency.code ? "default" : "outline"
                   }
-                  className="h-28 flex flex-col items-center justify-center gap-2 py-4 px-2 text-center border-2"
+                  className={`h-28 flex flex-col items-center justify-center gap-2 py-4 px-2 text-center border-2 ${formData.currency === currency.code ? "shadow-neon" : ""
+                    }`}
                   onClick={() =>
                     setFormData({
                       ...formData,
@@ -426,48 +485,95 @@ const SoftwareCostEstimator = () => {
                 </Button>
               ))}
             </div>
-            {formData.softwareType && formData.timeline && (
+            {formData.softwareType.length > 0 && formData.timeline && (
               <Card>
                 <CardHeader>
                   <CardTitle>Estimated Cost</CardTitle>
                   <CardDescription>Based on your selections</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Base Cost ({formData.softwareType.name})</span>
-                    <span>
-                      {getCurrencySymbol()}
-                      {formatPrice(
-                        formData.softwareType.basePrice[formData.currency]
+                  {/* Show selected industries */}
+                  {formData.industries.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Industries:
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {formData.industries.map((industry) => (
+                          <Badge key={industry} variant="secondary">
+                            {industry}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show base cost for the selected software types */}
+                  {formData.softwareType.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Software Types:
+                      </div>
+                      {formData.softwareType.map((softwareType) => (
+                        <div key={softwareType.id} className="flex justify-between text-sm">
+                          <span>{softwareType.name}</span>
+                          <span>
+                            {getCurrencySymbol()}
+                            {formatPrice((softwareType.basePrice || 0) * getCurrencyRate())}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Show selected tech stack */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Technology Stack:
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {formData.techStack.backend && (
+                        <div>
+                          <span className="font-medium">Backend:</span> {formData.techStack.backend}
+                        </div>
                       )}
-                    </span>
+                      {formData.techStack.frontend && (
+                        <div>
+                          <span className="font-medium">Frontend:</span> {formData.techStack.frontend}
+                        </div>
+                      )}
+                      {formData.techStack.mobile && (
+                        <div>
+                          <span className="font-medium">Mobile:</span> {formData.techStack.mobile}
+                        </div>
+                      )}
+                    </div>
                   </div>
+
                   {formData.features.length > 0 && (
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-muted-foreground">
                         Features:
                       </div>
-                      {formData.features.map((featureName) => {
-                        const feature = features.find(
-                          (f) => f.name === featureName
-                        );
+                      {formData.features.map((featureId) => {
+                        const feature = findFeatureById(featureId);
+
                         return (
                           <div
-                            key={featureName}
+                            key={featureId}
                             className="flex justify-between text-sm"
                           >
-                            <span>{featureName}</span>
+                            <span>{feature?.name || `Feature #${featureId}`}</span>
                             <span>
                               +{getCurrencySymbol()}
-                              {formatPrice(
-                                feature?.price[formData.currency] || 0
-                              )}
+                              {formatPrice((feature?.basePrice || 0) * getCurrencyRate())}
                             </span>
                           </div>
                         );
                       })}
                     </div>
                   )}
+
                   <div className="flex justify-between">
                     <span>Timeline Adjustment ({formData.timeline.label})</span>
                     <span>
@@ -476,6 +582,7 @@ const SoftwareCostEstimator = () => {
                         : `×${formData.timeline.multiplier}`}
                     </span>
                   </div>
+
                   <div className="border-t pt-4">
                     <div className="flex justify-between text-2xl font-bold">
                       <span>Total Estimate:</span>
@@ -485,17 +592,34 @@ const SoftwareCostEstimator = () => {
                       </span>
                     </div>
                   </div>
+
                   <div className="flex gap-2 pt-4">
-                    <Button className="flex-1">
-                      <Download className="w-4 h-4 mr-2" />
+                    <Button
+                      className="flex-1"
+                      onClick={() => handleCreateEstimation(false)}
+                      disabled={createEstimationMutation.isPending}
+                    >
+                      {createEstimationMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
                       Download PDF
                     </Button>
-                    <Button variant="outline" className="flex-1">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowContactForm(true)}
+                    >
                       <Mail className="w-4 h-4 mr-2" />
                       Email Quote
                     </Button>
                   </div>
-                  <Button size="lg" className="w-full">
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={() => setShowContactForm(true)}
+                  >
                     Talk to Us - Start Project
                   </Button>
                 </CardContent>
@@ -526,7 +650,7 @@ const SoftwareCostEstimator = () => {
                 onClick={nextStep}
                 disabled={
                   (step === 1 && !formData.industries.length) ||
-                  (step === 2 && !formData.softwareType) ||
+                  (step === 2 && !formData.softwareType.length) ||
                   (step === 4 && !formData.timeline)
                 }
               >
@@ -538,6 +662,69 @@ const SoftwareCostEstimator = () => {
         )}
 
         {renderStep()}
+
+        {/* Contact Form Dialog */}
+        <Dialog open={showContactForm} onOpenChange={setShowContactForm}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Contact Information</DialogTitle>
+              <DialogDescription>
+                Please provide your contact details to receive your detailed estimation and start your project.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="contact-name">Contact Name *</Label>
+                <Input
+                  id="contact-name"
+                  value={contactInfo.name}
+                  onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-email">Contact Email *</Label>
+                <Input
+                  id="contact-email"
+                  type="email"
+                  value={contactInfo.email}
+                  onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                  placeholder="Enter your email address"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-company">Company Name</Label>
+                <Input
+                  id="contact-company"
+                  value={contactInfo.company}
+                  onChange={(e) => setContactInfo({ ...contactInfo, company: e.target.value })}
+                  placeholder="Enter your company name (optional)"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowContactForm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSubmitWithContact}
+                disabled={!contactInfo.name || !contactInfo.email || createEstimationWithContactMutation.isPending}
+              >
+                {createEstimationWithContactMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                Submit & Get Quote
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

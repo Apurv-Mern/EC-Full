@@ -1,7 +1,7 @@
 import React from "react";
 import { useTheme } from "@/hooks/use-theme";
 import Navigation from "@/components/Navigation";
-import SoftwareCostEstimator from "@/components/SoftwareCostEstimator-new";
+import SoftwareCostEstimator from "@/components/SoftwareCostEstimator";
 import ContactSection from "@/components/ContactSection";
 
 const Index = () => {

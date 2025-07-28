@@ -11,6 +11,7 @@ export interface CurrencyInfo {
   symbol: string;
   flag: string;
   name: string;
+  exchangeRate: number;
 }
 
 // Price interface for multi-currency support
@@ -23,18 +24,24 @@ export interface Price {
 
 // Software type interface
 export interface SoftwareType {
+  id: number;
   name: string;
-  basePrice: Price;
+  basePrice: number;
 }
 
 // Feature interface
 export interface Feature {
+  id: number;
   name: string;
-  price: Price;
+  description: string;
+  basePrice: number;
+  estimatedHours: number;
+  complexity: string;
 }
 
 // Timeline interface
 export interface Timeline {
+  id: number;
   label: string;
   multiplier: number;
 }
@@ -48,26 +55,26 @@ export interface TechStack {
 
 // Static data response interface
 export interface StaticData {
-  industries: string[];
+  industries: Array<{id: number, name: string}>;
   softwareTypes: SoftwareType[];
   techStacks: {
-    backend: string[];
-    frontend: string[];
-    mobile: string[];
+    backend: Array<{id: number, name: string}>;
+    frontend: Array<{id: number, name: string}>;
+    mobile: Array<{id: number, name: string}>;
   };
   timelines: Timeline[];
-  features: Feature[];
+  features: Record<string, Feature[]> | Feature[];
   currencies: CurrencyInfo[];
 }
 
 // Estimation creation request interface
 export interface CreateEstimationRequest {
   industries: string[];
-  softwareType: string;
+  softwareType: string[];
   techStack: TechStack;
   timeline: string;
   timelineMultiplier: number;
-  features: string[];
+  features: number[];
   currency: Currency;
   contactName?: string;
   contactEmail?: string;
@@ -78,12 +85,12 @@ export interface CreateEstimationRequest {
 export interface Estimation {
   id: number;
   industries: string[];
-  softwareType: string;
+  softwareType: string[];
   softwareTypeBasePrice: Price;
   techStack: TechStack;
   timeline: string;
   timelineMultiplier: number;
-  features: string[];
+  features: number[];
   currency: Currency;
   basePrice: number;
   featuresPrice: number;
@@ -122,10 +129,10 @@ export interface Contact {
 // Form data interface for the estimator
 export interface EstimatorFormData {
   industries: string[];
-  softwareType: SoftwareType | null;
+  softwareType: SoftwareType[];
   techStack: TechStack;
   timeline: Timeline | null;
-  features: string[];
+  features: number[];
   currency: Currency;
   contactInfo?: {
     name: string;

@@ -38,59 +38,159 @@ const createEstimation = async (req, res, next) => {
   try {
     const {
       industries,
-      softwareType,
+      softwareType, // This is an array of software type names
       techStack,
       timeline,
       timelineMultiplier,
-      features: selectedFeatures,
+      features: selectedFeatureIds, // Array of feature IDs
       currency,
       contactName,
       contactEmail,
       contactCompany
     } = req.body;
 
-    // Find software type base price
-    const selectedSoftware = softwareTypes.find(st => st.name === softwareType);
-    if (!selectedSoftware) {
-      return sendErrorResponse(res, 'Invalid software type', 400);
+    console.log({ softwareType, selectedFeatureIds });
+
+    // Validate required fields
+    if (!softwareType || !Array.isArray(softwareType) || softwareType.length === 0) {
+      return sendErrorResponse(res, 'Software type is required and must be an array', 400);
     }
 
-    // Calculate base price
-    const basePrice = selectedSoftware.basePrice[currency];
+    if (!timeline) {
+      return sendErrorResponse(res, 'Timeline is required', 400);
+    }
 
-    // Calculate features price
-    let featuresPrice = 0;
-    selectedFeatures.forEach(featureName => {
-      const feature = features.find(f => f.name === featureName);
-      if (feature) {
-        featuresPrice += feature.price[currency];
+    if (!currency) {
+      return sendErrorResponse(res, 'Currency is required', 400);
+    }
+
+    // Get currency details for exchange rate
+    const selectedCurrency = await Currency.findOne({
+      where: { code: currency, isActive: true }
+    });
+
+    if (!selectedCurrency) {
+      return sendErrorResponse(res, 'Invalid currency', 400);
+    }
+
+    // Get timeline details
+    const selectedTimeline = await Timeline.findOne({
+      where: { label: timeline, isActive: true }
+    });
+
+    if (!selectedTimeline) {
+      return sendErrorResponse(res, 'Invalid timeline', 400);
+    }
+
+    // Find all selected software types
+    const selectedSoftwareTypes = await SoftwareType.findAll({
+      where: {
+        name: softwareType,
+        isActive: true
       }
     });
+
+    if (selectedSoftwareTypes.length !== softwareType.length) {
+      return sendErrorResponse(res, 'One or more invalid software types', 400);
+    }
+
+    // Calculate base price (sum of all selected software types)
+    const basePrice = selectedSoftwareTypes.reduce((total, st) => {
+      return total + (parseFloat(st.basePrice) * selectedCurrency.exchangeRate);
+    }, 0);
+
+    // Find all selected features
+    let featuresPrice = 0;
+    let selectedFeatures = [];
+
+    if (selectedFeatureIds && Array.isArray(selectedFeatureIds) && selectedFeatureIds.length > 0) {
+      selectedFeatures = await Feature.findAll({
+        where: {
+          id: selectedFeatureIds,
+          isActive: true
+        }
+      });
+
+      // Calculate features price
+      featuresPrice = selectedFeatures.reduce((total, feature) => {
+        return total + (parseFloat(feature.basePrice) * selectedCurrency.exchangeRate);
+      }, 0);
+    }
 
     // Calculate total price
     const totalPrice = (basePrice + featuresPrice) * timelineMultiplier;
 
     // Create estimation
     const estimation = await Estimation.create({
-      industries,
-      softwareType,
-      softwareTypeBasePrice: selectedSoftware.basePrice,
-      techStack,
+      industries: JSON.stringify(industries), // Store as JSON string
+      softwareType: JSON.stringify(softwareType), // Store as JSON array
+      softwareTypeBasePrice: basePrice,
+      techStack: JSON.stringify(techStack), // Store as JSON object
       timeline,
       timelineMultiplier,
-      features: selectedFeatures,
+      features: JSON.stringify(selectedFeatureIds), // Store feature IDs as JSON
       currency,
       basePrice,
       featuresPrice,
       totalPrice,
-      contactName,
-      contactEmail,
-      contactCompany,
+      contactName: contactName || null,
+      contactEmail: contactEmail || null,
+      contactCompany: contactCompany || null,
       status: contactEmail ? 'sent' : 'draft'
     });
 
-    return sendSuccessResponse(res, estimation, 201);
+    // If contact info provided, you might want to create a separate contact record
+    if (contactEmail && contactName) {
+      // Optional: Create a contact record
+      // await Contact.create({
+      //   name: contactName,
+      //   email: contactEmail,
+      //   company: contactCompany,
+      //   message: `Estimation request for ${softwareType.join(', ')}`,
+      //   estimationId: estimation.id
+      // });
+    }
+
+    // Prepare response with detailed breakdown
+    const response = {
+      id: estimation.id,
+      industries,
+      softwareTypes: selectedSoftwareTypes.map(st => ({
+        name: st.name,
+        basePrice: parseFloat(st.basePrice) * selectedCurrency.exchangeRate
+      })),
+      features: selectedFeatures.map(f => ({
+        id: f.id,
+        name: f.name,
+        price: parseFloat(f.basePrice) * selectedCurrency.exchangeRate
+      })),
+      techStack,
+      timeline: {
+        label: timeline,
+        multiplier: timelineMultiplier
+      },
+      currency: {
+        code: currency,
+        symbol: selectedCurrency.symbol,
+        exchangeRate: selectedCurrency.exchangeRate
+      },
+      pricing: {
+        basePrice: Math.round(basePrice),
+        featuresPrice: Math.round(featuresPrice),
+        totalPrice: Math.round(totalPrice)
+      },
+      contact: contactEmail ? {
+        name: contactName,
+        email: contactEmail,
+        company: contactCompany
+      } : null,
+      status: estimation.status,
+      createdAt: estimation.createdAt
+    };
+
+    return sendSuccessResponse(res, response, 201);
   } catch (error) {
+    console.error('Error creating estimation:', error);
     next(error);
   }
 };
