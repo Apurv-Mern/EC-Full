@@ -4,6 +4,9 @@ import { featuresService } from '@/services/features';
 import { softwareTypesService } from '@/services/softwareTypes';
 import { techStacksService } from '@/services/techStacks';
 import { timelinesService } from '@/services/timelines';
+import { industriesService } from '@/services/industries';
+import { currenciesService } from '@/services/currencies';
+import { estimationsService } from '@/services/estimations';
 import { 
   Feature, 
   CreateFeatureRequest, 
@@ -12,7 +15,12 @@ import {
   TechStack,
   CreateTechStackRequest,
   Timeline,
-  CreateTimelineRequest
+  CreateTimelineRequest,
+  Industry,
+  CreateIndustryRequest,
+  Currency,
+  CreateCurrencyRequest,
+  Estimation
 } from '@/types/admin';
 
 // Query Keys
@@ -24,6 +32,12 @@ export const QUERY_KEYS = {
   techStacks: ['techStacks'] as const,
   techStack: (id: number) => ['techStacks', id] as const,
   timelines: ['timelines'] as const,
+  industries: ['industries'] as const,
+  industry: (id: number) => ['industries', id] as const,
+  currencies: ['currencies'] as const,
+  currency: (id: number) => ['currencies', id] as const,
+  estimations: ['estimations'] as const,
+  estimation: (id: number) => ['estimations', id] as const,
 };
 
 // Features Hooks
@@ -250,6 +264,180 @@ export const useUpdateTimeline = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update timeline');
+    },
+  });
+};
+
+// Industries Hooks
+export const useIndustries = () => {
+  return useQuery({
+    queryKey: QUERY_KEYS.industries,
+    queryFn: () => industriesService.getAll(),
+  });
+};
+
+export const useIndustry = (id: number) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.industry(id),
+    queryFn: () => industriesService.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateIndustry = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: CreateIndustryRequest) => industriesService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.industries });
+      toast.success('Industry created successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create industry');
+    },
+  });
+};
+
+export const useUpdateIndustry = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<CreateIndustryRequest> }) =>
+      industriesService.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.industries });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.industry(id) });
+      toast.success('Industry updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update industry');
+    },
+  });
+};
+
+export const useDeleteIndustry = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => industriesService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.industries });
+      toast.success('Industry deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete industry');
+    },
+  });
+};
+
+// Currencies Hooks
+export const useCurrencies = () => {
+  return useQuery({
+    queryKey: QUERY_KEYS.currencies,
+    queryFn: () => currenciesService.getAll(),
+  });
+};
+
+export const useCurrency = (id: number) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.currency(id),
+    queryFn: () => currenciesService.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateCurrency = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: CreateCurrencyRequest) => currenciesService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.currencies });
+      toast.success('Currency created successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create currency');
+    },
+  });
+};
+
+export const useUpdateCurrency = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<CreateCurrencyRequest> }) =>
+      currenciesService.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.currencies });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.currency(id) });
+      toast.success('Currency updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update currency');
+    },
+  });
+};
+
+export const useDeleteCurrency = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => currenciesService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.currencies });
+      toast.success('Currency deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete currency');
+    },
+  });
+};
+
+// Estimations Hooks
+export const useEstimations = () => {
+  return useQuery({
+    queryKey: QUERY_KEYS.estimations,
+    queryFn: () => estimationsService.getAll(),
+  });
+};
+
+export const useEstimation = (id: number) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.estimation(id),
+    queryFn: () => estimationsService.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useUpdateEstimationStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: 'draft' | 'sent' | 'accepted' | 'rejected' }) =>
+      estimationsService.updateStatus(id, status),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.estimations });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.estimation(id) });
+      toast.success('Estimation status updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update estimation status');
+    },
+  });
+};
+
+export const useDeleteEstimation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => estimationsService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.estimations });
+      toast.success('Estimation deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete estimation');
     },
   });
 };

@@ -8,101 +8,135 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Clock } from "lucide-react";
-
-interface TimelineBand {
-  id: number;
-  name: string;
-  description: string;
-  minMonths: number;
-  maxMonths: number;
-  multiplier: number;
-  isDefault: boolean;
-  isActive: boolean;
-  createdAt: string;
-}
-
-const mockTimelineBands: TimelineBand[] = [
-  { id: 1, name: "Express", description: "Rush delivery with dedicated team", minMonths: 1, maxMonths: 2, multiplier: 1.5, isDefault: false, isActive: true, createdAt: "2024-01-15" },
-  { id: 2, name: "Standard", description: "Normal development timeline", minMonths: 3, maxMonths: 6, multiplier: 1.0, isDefault: true, isActive: true, createdAt: "2024-01-15" },
-  { id: 3, name: "Extended", description: "Relaxed timeline with lower cost", minMonths: 7, maxMonths: 12, multiplier: 0.85, isDefault: false, isActive: true, createdAt: "2024-01-15" },
-  { id: 4, name: "Long-term", description: "Very flexible timeline", minMonths: 13, maxMonths: 24, multiplier: 0.7, isDefault: false, isActive: true, createdAt: "2024-01-15" },
-];
+import { useTimelines, useCreateTimeline, useUpdateTimeline, useDeleteTimeline } from "@/hooks/useApi";
+import { Timeline, CreateTimelineRequest } from "@/types/admin";
 
 export default function Timeline() {
-  const [timelineBands, setTimelineBands] = useState<TimelineBand[]>(mockTimelineBands);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingBand, setEditingBand] = useState<TimelineBand | null>(null);
+  // Move ALL hooks to the top, before any conditional logic
+  const { data: timelines, isLoading, error } = useTimelines();
+  const createTimeline = useCreateTimeline();
+  const updateTimeline = useUpdateTimeline();
+  const deleteTimeline = useDeleteTimeline();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    name: "",
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTimeline, setEditingTimeline] = useState<Timeline | null>(null);
+
+  const [formData, setFormData] = useState<{
+    label: string;
+    description?: string;
+    durationInMonths: number;
+    multiplier: number;
+    isActive: boolean;
+  }>({
+    label: "",
     description: "",
-    minMonths: 1,
-    maxMonths: 3,
+    durationInMonths: 3,
     multiplier: 1.0,
-    isDefault: false,
     isActive: true
   });
+
+  // Now handle loading and error states after all hooks
+  if (isLoading) {
+    return <div>Loading timelines...</div>;
+  }
+
+  if (error) {
+    return <div>Error loading timelines: {error.message}</div>;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingBand) {
-      setTimelineBands(prev => prev.map(band =>
-        band.id === editingBand.id
-          ? { ...band, ...formData }
-          : { ...band, isDefault: formData.isDefault ? false : band.isDefault }
-      ));
-      toast({ title: "Timeline band updated successfully" });
+    if (editingTimeline) {
+      updateTimeline.mutate(
+        { id: editingTimeline.id, data: formData },
+        {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Timeline updated successfully",
+            });
+            resetForm();
+            setIsDialogOpen(false);
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to update timeline",
+              variant: "destructive",
+            });
+          }
+        }
+      );
     } else {
-      const newBand: TimelineBand = {
-        id: Math.max(...timelineBands.map(b => b.id)) + 1,
-        ...formData,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-      
-      if (formData.isDefault) {
-        setTimelineBands(prev => prev.map(band => ({ ...band, isDefault: false })));
-      }
-      
-      setTimelineBands(prev => [...prev, newBand]);
-      toast({ title: "Timeline band created successfully" });
+      createTimeline.mutate(
+        formData,
+        {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Timeline created successfully",
+            });
+            resetForm();
+            setIsDialogOpen(false);
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to create timeline",
+              variant: "destructive",
+            });
+          }
+        }
+      );
     }
-
-    resetForm();
-    setIsDialogOpen(false);
   };
 
-  const handleEdit = (band: TimelineBand) => {
+  const handleEdit = (timeline: Timeline) => {
     setFormData({
-      name: band.name,
-      description: band.description,
-      minMonths: band.minMonths,
-      maxMonths: band.maxMonths,
-      multiplier: band.multiplier,
-      isDefault: band.isDefault,
-      isActive: band.isActive
+      label: timeline.label,
+      description: timeline.description || "",
+      durationInMonths: timeline.durationInMonths,
+      multiplier: timeline.multiplier,
+      isActive: timeline.isActive
     });
-    setEditingBand(band);
+    setEditingTimeline(timeline);
     setIsDialogOpen(true);
   };
 
   const handleDelete = (id: number) => {
-    setTimelineBands(prev => prev.filter(band => band.id !== id));
-    toast({ title: "Timeline band deleted successfully" });
+    if (window.confirm('Are you sure you want to delete this timeline?')) {
+      deleteTimeline.mutate(
+        id,
+        {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Timeline deleted successfully",
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to delete timeline",
+              variant: "destructive",
+            });
+          }
+        }
+      );
+    }
   };
 
   const resetForm = () => {
     setFormData({
-      name: "",
+      label: "",
       description: "",
-      minMonths: 1,
-      maxMonths: 3,
+      durationInMonths: 3,
       multiplier: 1.0,
-      isDefault: false,
       isActive: true
     });
-    setEditingBand(null);
+    setEditingTimeline(null);
   };
 
   const getMultiplierColor = (multiplier: number) => {
@@ -132,16 +166,16 @@ export default function Timeline() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingBand ? "Edit Timeline Band" : "Add New Timeline Band"}</DialogTitle>
+              <DialogTitle>{editingTimeline ? "Edit Timeline" : "Add New Timeline"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Band Name</Label>
+                <Label htmlFor="label">Timeline Label</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Express, Standard"
+                  id="label"
+                  value={formData.label}
+                  onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="e.g., Express, Standard, Extended"
                   required
                 />
               </div>
@@ -157,29 +191,16 @@ export default function Timeline() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="minMonths">Min Months</Label>
-                  <Input
-                    id="minMonths"
-                    type="number"
-                    min="1"
-                    value={formData.minMonths}
-                    onChange={(e) => setFormData(prev => ({ ...prev, minMonths: parseInt(e.target.value) || 1 }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="maxMonths">Max Months</Label>
-                  <Input
-                    id="maxMonths"
-                    type="number"
-                    min="1"
-                    value={formData.maxMonths}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxMonths: parseInt(e.target.value) || 1 }))}
-                    required
-                  />
-                </div>
+              <div>
+                <Label htmlFor="durationInMonths">Duration (Months)</Label>
+                <Input
+                  id="durationInMonths"
+                  type="number"
+                  min="1"
+                  value={formData.durationInMonths}
+                  onChange={(e) => setFormData(prev => ({ ...prev, durationInMonths: parseInt(e.target.value) || 1 }))}
+                  required
+                />
               </div>
 
               <div>
@@ -200,33 +221,28 @@ export default function Timeline() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isDefault"
-                    checked={formData.isDefault}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <Label htmlFor="isDefault">Default Timeline</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <Label htmlFor="isActive">Active</Label>
-                </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                  className="rounded"
+                />
+                <Label htmlFor="isActive">Active</Label>
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingBand ? "Update" : "Create"}
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={createTimeline.isPending || updateTimeline.isPending}
+                >
+                  {(createTimeline.isPending || updateTimeline.isPending) ? (
+                    "Saving..."
+                  ) : (
+                    editingTimeline ? "Update" : "Create"
+                  )}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
@@ -237,37 +253,34 @@ export default function Timeline() {
         </Dialog>
       </div>
 
-      {/* Timeline Bands List */}
+      {/* Timelines List */}
       <div className="grid gap-4">
-        {timelineBands
-          .sort((a, b) => a.minMonths - b.minMonths)
-          .map((band) => (
-            <Card key={band.id}>
+        {(timelines || [])
+          .sort((a, b) => a.durationInMonths - b.durationInMonths)
+          .map((timeline) => (
+            <Card key={timeline.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-admin-primary" />
-                    <CardTitle className="text-lg">{band.name}</CardTitle>
-                    <Badge variant={band.isDefault ? "default" : "secondary"}>
-                      {band.isDefault ? "Default" : "Optional"}
-                    </Badge>
-                    <Badge variant={band.isActive ? "outline" : "secondary"}>
-                      {band.isActive ? "Active" : "Inactive"}
+                    <Clock className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg">{timeline.label}</CardTitle>
+                    <Badge variant={timeline.isActive ? "default" : "secondary"}>
+                      {timeline.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleEdit(band)}
+                      onClick={() => handleEdit(timeline)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(band.id)}
-                      className="text-admin-danger hover:text-admin-danger"
+                      onClick={() => handleDelete(timeline.id)}
+                      className="text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -279,29 +292,29 @@ export default function Timeline() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Duration</p>
                     <p className="text-lg font-semibold">
-                      {band.minMonths}-{band.maxMonths} months
+                      {timeline.durationInMonths} months
                     </p>
                   </div>
                   
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Cost Multiplier</p>
-                    <p className={`text-lg font-semibold ${getMultiplierColor(band.multiplier)}`}>
-                      {band.multiplier}x
-                      {band.multiplier > 1 && ` (+${Math.round((band.multiplier - 1) * 100)}%)`}
-                      {band.multiplier < 1 && ` (${Math.round((band.multiplier - 1) * 100)}%)`}
+                    <p className={`text-lg font-semibold ${getMultiplierColor(timeline.multiplier)}`}>
+                      {timeline.multiplier}x
+                      {timeline.multiplier > 1 && ` (+${Math.round((timeline.multiplier - 1) * 100)}%)`}
+                      {timeline.multiplier < 1 && ` (${Math.round((timeline.multiplier - 1) * 100)}%)`}
                     </p>
                   </div>
                   
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Created</p>
-                    <p className="text-lg">{band.createdAt}</p>
+                    <p className="text-lg">{new Date(timeline.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
                 
-                {band.description && (
+                {timeline.description && (
                   <div className="mt-4">
                     <p className="text-sm font-medium text-muted-foreground mb-1">Description</p>
-                    <p className="text-sm">{band.description}</p>
+                    <p className="text-sm">{timeline.description}</p>
                   </div>
                 )}
               </CardContent>
@@ -309,12 +322,12 @@ export default function Timeline() {
           ))}
       </div>
 
-      {timelineBands.length === 0 && (
+      {(!timelines || timelines.length === 0) && (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No timeline bands configured yet.</p>
+              <p className="text-muted-foreground">No timelines configured yet.</p>
             </div>
           </CardContent>
         </Card>

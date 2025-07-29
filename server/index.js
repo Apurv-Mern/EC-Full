@@ -10,6 +10,8 @@ import featureRoutes from './routes/featureRoutes.js';
 import softwareTypeRoutes from './routes/softwareTypeRoutes.js';
 import techStackRoutes from './routes/techStackRoutes.js';
 import timelineRoutes from './routes/timelineRoutes.js';
+import industryRoutes from './routes/industryRoutes.js';
+import currencyRoutes from './routes/currencyRoutes.js';
 
 // Import middleware
 import errorHandler from './middleware/errorHandler.js';
@@ -32,6 +34,8 @@ app.use('/api/features', featureRoutes);
 app.use('/api/software-types', softwareTypeRoutes);
 app.use('/api/tech-stacks', techStackRoutes);
 app.use('/api/timelines', timelineRoutes);
+app.use('/api/industries', industryRoutes);
+app.use('/api/currencies', currencyRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });

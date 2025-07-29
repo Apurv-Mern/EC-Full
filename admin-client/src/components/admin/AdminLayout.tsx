@@ -24,9 +24,8 @@ const navigation = [
   { name: "Tech Stacks", href: "/admin/tech-stacks", icon: Layers },
   { name: "Delivery Timeline", href: "/admin/timeline", icon: Clock },
   { name: "Feature Library", href: "/admin/features", icon: Package },
-  { name: "Currency Management", href: "/admin/currency", icon: DollarSign },
-  // { name: "Cost Formula", href: "/admin/cost-formula", icon: Settings },
-  // { name: "Content Management", href: "/admin/content", icon: FileText },
+  { name: "Currency Management", href: "/admin/currencies", icon: DollarSign },
+  { name: "Estimation Management", href: "/admin/estimation/management", icon: Settings },
 ];
 
 export function AdminLayout() {

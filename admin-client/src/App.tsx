@@ -12,9 +12,10 @@ import SoftwareTypes from "./pages/admin/SoftwareTypes";
 import TechStacks from "./pages/admin/TechStacks";
 import Timeline from "./pages/admin/Timeline";
 import Features from "./pages/admin/Features";
-import Currency from "./pages/admin/Currency";
+import Currencies from "./pages/admin/Currencies";
 import CostFormula from "./pages/admin/CostFormula";
 import Content from "./pages/admin/Content";
+import Estimations from "./pages/admin/Estimations";
 
 const queryClient = new QueryClient();
 
@@ -33,9 +34,8 @@ const App = () => (
             <Route path="tech-stacks" element={<TechStacks />} />
             <Route path="timeline" element={<Timeline />} />
             <Route path="features" element={<Features />} />
-            <Route path="currency" element={<Currency />} />
-            <Route path="cost-formula" element={<CostFormula />} />
-            <Route path="content" element={<Content />} />
+            <Route path="currencies" element={<Currencies />} />
+            <Route path="estimation/management" element={<Estimations />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

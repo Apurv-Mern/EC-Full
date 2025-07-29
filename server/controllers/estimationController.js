@@ -204,8 +204,79 @@ const getEstimations = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
-    return sendListResponse(res, estimations);
+    // Transform the data to include proper relationships and parsed JSON
+    const transformedEstimations = await Promise.all(
+      estimations.map(async (estimation) => {
+        // Parse JSON fields
+        const industries = Array.isArray(estimation.industries)
+          ? estimation.industries
+          : JSON.parse(estimation.industries || '[]');
+
+        const softwareTypeNames = Array.isArray(estimation.softwareType)
+          ? estimation.softwareType
+          : JSON.parse(estimation.softwareType || '[]');
+
+        const techStack = typeof estimation.techStack === 'object'
+          ? estimation.techStack
+          : JSON.parse(estimation.techStack || '{}');
+
+        const featureIds = Array.isArray(estimation.features)
+          ? estimation.features
+          : JSON.parse(estimation.features || '[]');
+
+        // Get related data
+        const [selectedFeatures, selectedIndustries, selectedCurrency] = await Promise.all([
+          Feature.findAll({
+            where: { id: featureIds },
+          }),
+          Industry.findAll({
+            where: { name: industries },
+          }),
+          Currency.findOne({
+            where: { code: estimation.currency },
+          })
+        ]);
+
+        // Calculate industry multiplier
+        const industryMultiplier = selectedIndustries.length > 0
+          ? selectedIndustries.reduce((acc, industry) => acc * parseFloat(industry.multiplier), 1)
+          : 1;
+
+        return {
+          id: estimation.id,
+          industries: industries,
+          softwareType: softwareTypeNames[0] || 'Unknown',
+          techStack: Object.values(techStack).filter(Boolean),
+          timeline: estimation.timeline,
+          timelineMultiplier: estimation.timelineMultiplier,
+          features: selectedFeatures.map(feature => ({
+            id: feature.id,
+            name: feature.name,
+            price: parseFloat(feature.basePrice) * (selectedCurrency?.exchangeRate || 1)
+          })),
+          currency: estimation.currency,
+          pricing: {
+            basePrice: estimation.basePrice,
+            featuresPrice: estimation.featuresPrice,
+            totalPrice: estimation.totalPrice,
+            industryMultiplier: industryMultiplier
+          },
+          contactInfo: {
+            name: estimation.contactName || '',
+            email: estimation.contactEmail || '',
+            phone: '',
+            company: estimation.contactCompany || ''
+          },
+          status: estimation.status,
+          createdAt: estimation.createdAt,
+          updatedAt: estimation.updatedAt
+        };
+      })
+    );
+
+    return sendListResponse(res, transformedEstimations);
   } catch (error) {
+    console.error('Error fetching estimations:', error);
     next(error);
   }
 };

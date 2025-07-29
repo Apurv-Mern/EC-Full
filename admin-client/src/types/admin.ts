@@ -90,6 +90,83 @@ export interface CreateTimelineRequest {
   isActive?: boolean;
 }
 
+// Industry Types
+export interface Industry {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIndustryRequest {
+  name: string;
+  slug?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+// Currency Types
+export interface Currency {
+  id: number;
+  code: string;
+  name: string;
+  symbol: string;
+  flag?: string;
+  exchangeRate: number;
+  isBaseCurrency: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCurrencyRequest {
+  code: string;
+  name: string;
+  symbol: string;
+  flag?: string;
+  exchangeRate?: number;
+  isBaseCurrency?: boolean;
+  isActive?: boolean;
+}
+
+// Estimation Types
+export interface Estimation {
+  id: number;
+  industries: string[];
+  softwareType: string;
+  softwareTypeBasePrice: any;
+  techStack: any;
+  timeline: string;
+  timelineMultiplier: number;
+  features: string;
+  currency: string;
+  basePrice: number;
+  featuresPrice: number;
+  totalPrice: number;
+  contactName?: string;
+  contactEmail?: string;
+  contactCompany?: string;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateEstimationRequest {
+  industries: string[];
+  softwareType: string[];
+  techStack: any;
+  timeline: string;
+  timelineMultiplier: number;
+  features: number[];
+  currency: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactCompany?: string;
+}
+
 // Generic API Response Types
 export interface ApiResponse<T> {
   data: T;

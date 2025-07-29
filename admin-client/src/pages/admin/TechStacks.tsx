@@ -6,148 +6,176 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
+import { useTechStacks, useCreateTechStack, useUpdateTechStack, useDeleteTechStack } from "@/hooks/useApi";
+import { TechStack, CreateTechStackRequest } from "@/types/admin";
 
-interface TechStack {
-  id: number;
-  name: string;
-  description: string;
-  type: "Backend" | "Frontend" | "Mobile" | "Database" | "DevOps";
-  technologies: string[];
-  costMultipliers: {
-    US: number;
-    UK: number;
-    AU: number;
-    IN: number;
-  };
-  isActive: boolean;
-  createdAt: string;
-}
-
-const mockTechStacks: TechStack[] = [
-  {
-    id: 1,
-    name: "React + Node.js",
-    description: "Modern full-stack JavaScript development",
-    type: "Frontend",
-    technologies: ["React", "Node.js", "Express", "MongoDB"],
-    costMultipliers: { US: 1.0, UK: 0.95, AU: 0.9, IN: 0.4 },
-    isActive: true,
-    createdAt: "2024-01-15"
-  },
-  {
-    id: 2,
-    name: "Python Django",
-    description: "Robust backend framework with rapid development",
-    type: "Backend",
-    technologies: ["Python", "Django", "PostgreSQL", "Redis"],
-    costMultipliers: { US: 1.1, UK: 1.0, AU: 0.95, IN: 0.45 },
-    isActive: true,
-    createdAt: "2024-01-15"
-  },
-  {
-    id: 3,
-    name: "React Native",
-    description: "Cross-platform mobile development",
-    type: "Mobile",
-    technologies: ["React Native", "Expo", "TypeScript"],
-    costMultipliers: { US: 1.2, UK: 1.1, AU: 1.0, IN: 0.5 },
-    isActive: true,
-    createdAt: "2024-01-15"
-  }
-];
+const categories = ["backend", "frontend", "mobile", "database", "cloud", "other"] as const;
+const difficultyLevels = ["beginner", "intermediate", "advanced"] as const;
 
 export default function TechStacks() {
-  const [techStacks, setTechStacks] = useState<TechStack[]>(mockTechStacks);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingStack, setEditingStack] = useState<TechStack | null>(null);
+  // Move ALL hooks to the top, before any conditional logic
+  const { data: techStacks, isLoading, error } = useTechStacks();
+  const createTechStack = useCreateTechStack();
+  const updateTechStack = useUpdateTechStack();
+  const deleteTechStack = useDeleteTechStack();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTechStack, setEditingTechStack] = useState<TechStack | null>(null);
+
+  const [formData, setFormData] = useState<{
+    name: string;
+    category: 'backend' | 'frontend' | 'mobile' | 'database' | 'cloud' | 'other';
+    version?: string;
+    description?: string;
+    difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
+    hourlyRateMultiplier?: number;
+    isActive: boolean;
+  }>({
     name: "",
+    category: "frontend",
+    version: "",
     description: "",
-    type: "Frontend" as TechStack["type"],
-    technologies: "",
-    costMultipliers: { US: 1.0, UK: 0.95, AU: 0.9, IN: 0.4 },
+    difficultyLevel: "intermediate",
+    hourlyRateMultiplier: 1.0,
     isActive: true
   });
 
-  const filteredStacks = techStacks.filter(stack => {
+  // Now handle loading and error states after all hooks
+  if (isLoading) {
+    return <div>Loading tech stacks...</div>;
+  }
+
+  if (error) {
+    return <div>Error loading tech stacks: {error.message}</div>;
+  }
+
+  const filteredStacks = (techStacks || []).filter(stack => {
     const matchesSearch = stack.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         stack.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === "all" || stack.type === selectedType;
-    return matchesSearch && matchesType;
+      (stack.description && stack.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = selectedCategory === "all" || stack.category === selectedCategory;
+    return matchesSearch && matchesCategory;
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const technologiesArray = formData.technologies.split(",").map(t => t.trim()).filter(t => t);
-    
-    if (editingStack) {
-      setTechStacks(prev => prev.map(stack =>
-        stack.id === editingStack.id
-          ? { ...stack, ...formData, technologies: technologiesArray }
-          : stack
-      ));
-      toast({ title: "Tech stack updated successfully" });
+    if (editingTechStack) {
+      updateTechStack.mutate(
+        { id: editingTechStack.id, data: formData },
+        {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Tech stack updated successfully",
+            });
+            resetForm();
+            setIsDialogOpen(false);
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to update tech stack",
+              variant: "destructive",
+            });
+          }
+        }
+      );
     } else {
-      const newStack: TechStack = {
-        id: Math.max(...techStacks.map(s => s.id)) + 1,
-        ...formData,
-        technologies: technologiesArray,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-      setTechStacks(prev => [...prev, newStack]);
-      toast({ title: "Tech stack created successfully" });
+      createTechStack.mutate(
+        formData,
+        {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Tech stack created successfully",
+            });
+            resetForm();
+            setIsDialogOpen(false);
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to create tech stack",
+              variant: "destructive",
+            });
+          }
+        }
+      );
     }
-
-    resetForm();
-    setIsDialogOpen(false);
   };
 
-  const handleEdit = (stack: TechStack) => {
+  const handleEdit = (techStack: TechStack) => {
     setFormData({
-      name: stack.name,
-      description: stack.description,
-      type: stack.type,
-      technologies: stack.technologies.join(", "),
-      costMultipliers: stack.costMultipliers,
-      isActive: stack.isActive
+      name: techStack.name,
+      category: techStack.category,
+      version: techStack.version || "",
+      description: techStack.description || "",
+      difficultyLevel: techStack.difficultyLevel,
+      hourlyRateMultiplier: techStack.hourlyRateMultiplier,
+      isActive: techStack.isActive
     });
-    setEditingStack(stack);
+    setEditingTechStack(techStack);
     setIsDialogOpen(true);
   };
 
   const handleDelete = (id: number) => {
-    setTechStacks(prev => prev.filter(stack => stack.id !== id));
-    toast({ title: "Tech stack deleted successfully" });
+    if (window.confirm('Are you sure you want to delete this tech stack?')) {
+      deleteTechStack.mutate(
+        id,
+        {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Tech stack deleted successfully",
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to delete tech stack",
+              variant: "destructive",
+            });
+          }
+        }
+      );
+    }
   };
 
   const resetForm = () => {
     setFormData({
       name: "",
+      category: "frontend",
+      version: "",
       description: "",
-      type: "Frontend",
-      technologies: "",
-      costMultipliers: { US: 1.0, UK: 0.95, AU: 0.9, IN: 0.4 },
+      difficultyLevel: "intermediate",
+      hourlyRateMultiplier: 1.0,
       isActive: true
     });
-    setEditingStack(null);
+    setEditingTechStack(null);
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Frontend": return "bg-blue-500";
-      case "Backend": return "bg-green-500";
-      case "Mobile": return "bg-purple-500";
-      case "Database": return "bg-orange-500";
-      case "DevOps": return "bg-red-500";
-      default: return "bg-gray-500";
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "frontend": return "bg-blue-100 text-blue-800";
+      case "backend": return "bg-green-100 text-green-800";
+      case "mobile": return "bg-purple-100 text-purple-800";
+      case "database": return "bg-orange-100 text-orange-800";
+      case "cloud": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case "beginner": return "bg-green-100 text-green-800";
+      case "intermediate": return "bg-yellow-100 text-yellow-800";
+      case "advanced": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -171,7 +199,7 @@ export default function TechStacks() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editingStack ? "Edit Tech Stack" : "Add New Tech Stack"}</DialogTitle>
+              <DialogTitle>{editingTechStack ? "Edit Tech Stack" : "Add New Tech Stack"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -186,18 +214,41 @@ export default function TechStacks() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Type</Label>
+                  <Label htmlFor="category">Category</Label>
                   <select
-                    id="type"
-                    value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as TechStack["type"] }))}
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as 'backend' | 'frontend' | 'mobile' | 'database' | 'cloud' | 'other' }))}
                     className="w-full p-2 border rounded-md"
                   >
-                    <option value="Frontend">Frontend</option>
-                    <option value="Backend">Backend</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="Database">Database</option>
-                    <option value="DevOps">DevOps</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="version">Version</Label>
+                  <Input
+                    id="version"
+                    value={formData.version}
+                    onChange={(e) => setFormData(prev => ({ ...prev, version: e.target.value }))}
+                    placeholder="e.g., 18.x, 3.9"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="difficultyLevel">Difficulty Level</Label>
+                  <select
+                    id="difficultyLevel"
+                    value={formData.difficultyLevel}
+                    onChange={(e) => setFormData(prev => ({ ...prev, difficultyLevel: e.target.value as 'beginner' | 'intermediate' | 'advanced' }))}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
                   </select>
                 </div>
               </div>
@@ -214,37 +265,20 @@ export default function TechStacks() {
               </div>
               
               <div>
-                <Label htmlFor="technologies">Technologies (comma-separated)</Label>
+                <Label htmlFor="hourlyRateMultiplier">Hourly Rate Multiplier</Label>
                 <Input
-                  id="technologies"
-                  value={formData.technologies}
-                  onChange={(e) => setFormData(prev => ({ ...prev, technologies: e.target.value }))}
-                  placeholder="React, Node.js, MongoDB, ..."
+                  id="hourlyRateMultiplier"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="5.0"
+                  value={formData.hourlyRateMultiplier}
+                  onChange={(e) => setFormData(prev => ({ ...prev, hourlyRateMultiplier: parseFloat(e.target.value) || 1.0 }))}
+                  placeholder="1.0"
                 />
-              </div>
-
-              <div>
-                <Label>Cost Multipliers by Region</Label>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  {Object.entries(formData.costMultipliers).map(([region, multiplier]) => (
-                    <div key={region}>
-                      <Label>{region}</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={multiplier}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          costMultipliers: {
-                            ...prev.costMultipliers,
-                            [region]: parseFloat(e.target.value) || 0
-                          }
-                        }))}
-                        placeholder="1.0"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  1.0 = standard rate, 1.5 = +50%, 0.8 = -20%
+                </p>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -259,8 +293,16 @@ export default function TechStacks() {
               </div>
               
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingStack ? "Update" : "Create"}
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={createTechStack.isPending || updateTechStack.isPending}
+                >
+                  {(createTechStack.isPending || updateTechStack.isPending) ? (
+                    "Saving..."
+                  ) : (
+                    editingTechStack ? "Update" : "Create"
+                  )}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
@@ -285,17 +327,20 @@ export default function TechStacks() {
               />
             </div>
             <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
               className="px-3 py-2 border rounded-md"
             >
-              <option value="all">All Types</option>
-              <option value="Frontend">Frontend</option>
-              <option value="Backend">Backend</option>
-              <option value="Mobile">Mobile</option>
-              <option value="Database">Database</option>
-              <option value="DevOps">DevOps</option>
+              <option value="all">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
             </select>
+            <div className="text-sm text-muted-foreground flex items-center">
+              {filteredStacks.length} tech stacks
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -308,8 +353,14 @@ export default function TechStacks() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <CardTitle className="text-lg">{stack.name}</CardTitle>
-                  <Badge variant="secondary" className={getTypeColor(stack.type)}>
-                    {stack.type}
+                  {stack.version && (
+                    <Badge variant="outline">v{stack.version}</Badge>
+                  )}
+                  <Badge className={getCategoryColor(stack.category)}>
+                    {stack.category.charAt(0).toUpperCase() + stack.category.slice(1)}
+                  </Badge>
+                  <Badge className={getDifficultyColor(stack.difficultyLevel)}>
+                    {stack.difficultyLevel.charAt(0).toUpperCase() + stack.difficultyLevel.slice(1)}
                   </Badge>
                   <Badge variant={stack.isActive ? "default" : "secondary"}>
                     {stack.isActive ? "Active" : "Inactive"}
@@ -327,7 +378,7 @@ export default function TechStacks() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(stack.id)}
-                    className="text-admin-danger hover:text-admin-danger"
+                    className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -337,29 +388,22 @@ export default function TechStacks() {
             <CardContent>
               <p className="text-muted-foreground mb-3">{stack.description}</p>
               
-              <div className="mb-3">
-                <p className="text-sm font-medium mb-1">Technologies:</p>
-                <div className="flex flex-wrap gap-1">
-                  {stack.technologies.map((tech, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {tech}
-                    </Badge>
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Category</p>
+                  <p className="text-lg font-semibold">{stack.category}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Difficulty</p>
+                  <p className="text-lg font-semibold">{stack.difficultyLevel}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Rate Multiplier</p>
+                  <p className="text-lg font-semibold">{stack.hourlyRateMultiplier}x</p>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <p className="text-sm font-medium mb-1">Cost Multipliers:</p>
-                <div className="grid grid-cols-4 gap-2 text-sm">
-                  {Object.entries(stack.costMultipliers).map(([region, multiplier]) => (
-                    <div key={region} className="text-center">
-                      <span className="font-medium">{region}:</span> {multiplier}x
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <p className="text-sm text-muted-foreground">Created: {stack.createdAt}</p>
+              <p className="text-sm text-muted-foreground">Created: {new Date(stack.createdAt).toLocaleDateString()}</p>
             </CardContent>
           </Card>
         ))}

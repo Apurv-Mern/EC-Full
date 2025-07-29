@@ -23,59 +23,61 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { 
-  useIndustries, 
-  useCreateIndustry, 
-  useUpdateIndustry, 
-  useDeleteIndustry 
+  useCurrencies, 
+  useCreateCurrency, 
+  useUpdateCurrency, 
+  useDeleteCurrency 
 } from '@/hooks/useApi';
-import { Industry, CreateIndustryRequest } from '@/types/admin';
+import { Currency, CreateCurrencyRequest } from '@/types/admin';
 import { toast } from 'sonner';
 
-const Industries: React.FC = () => {
+const Currencies: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingIndustry, setEditingIndustry] = useState<Industry | null>(null);
-  const [formData, setFormData] = useState<CreateIndustryRequest>({
+  const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
+  const [formData, setFormData] = useState<CreateCurrencyRequest>({
+    code: '',
     name: '',
-    description: '',
-    multiplier: 1,
+    symbol: '',
+    exchangeRate: 1,
     isActive: true,
   });
 
-  const { data: industries = [], isLoading } = useIndustries();
-  const createMutation = useCreateIndustry();
-  const updateMutation = useUpdateIndustry();
-  const deleteMutation = useDeleteIndustry();
+  const { data: currencies = [], isLoading } = useCurrencies();
+  const createMutation = useCreateCurrency();
+  const updateMutation = useUpdateCurrency();
+  const deleteMutation = useDeleteCurrency();
 
-  const filteredIndustries = industries.filter(industry =>
-    industry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    industry.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCurrencies = currencies.filter(currency =>
+    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    currency.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    currency.symbol.includes(searchTerm)
   );
 
   const resetForm = () => {
     setFormData({
+      code: '',
       name: '',
-      description: '',
-      multiplier: 1,
+      symbol: '',
+      exchangeRate: 1,
       isActive: true,
     });
-    setEditingIndustry(null);
+    setEditingCurrency(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
-      toast.error('Industry name is required');
+    if (!formData.code.trim() || !formData.name.trim() || !formData.symbol.trim()) {
+      toast.error('Currency code, name, and symbol are required');
       return;
     }
 
     try {
-      if (editingIndustry) {
+      if (editingCurrency) {
         await updateMutation.mutateAsync({
-          id: editingIndustry.id,
+          id: editingCurrency.id,
           data: formData,
         });
       } else {
@@ -89,13 +91,14 @@ const Industries: React.FC = () => {
     }
   };
 
-  const handleEdit = (industry: Industry) => {
-    setEditingIndustry(industry);
+  const handleEdit = (currency: Currency) => {
+    setEditingCurrency(currency);
     setFormData({
-      name: industry.name,
-      description: industry.description || '',
-      multiplier: industry.multiplier,
-      isActive: industry.isActive,
+      code: currency.code,
+      name: currency.name,
+      symbol: currency.symbol,
+      exchangeRate: currency.exchangeRate,
+      isActive: currency.isActive,
     });
     setIsCreateDialogOpen(true);
   };
@@ -114,54 +117,66 @@ const Industries: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Industries</h1>
+          <h1 className="text-3xl font-bold">Currencies</h1>
           <p className="text-muted-foreground">
-            Manage industry types and their pricing multipliers
+            Manage supported currencies and their exchange rates
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Industry
+              Add Currency
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingIndustry ? 'Edit Industry' : 'Create New Industry'}
+                {editingCurrency ? 'Edit Currency' : 'Create New Currency'}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="code">Currency Code *</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter industry name"
+                  id="code"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  placeholder="USD, EUR, GBP..."
+                  maxLength={3}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Enter industry description"
-                  rows={3}
+                <Label htmlFor="name">Currency Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="US Dollar, Euro, British Pound..."
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="multiplier">Pricing Multiplier</Label>
+                <Label htmlFor="symbol">Symbol *</Label>
                 <Input
-                  id="multiplier"
+                  id="symbol"
+                  value={formData.symbol}
+                  onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
+                  placeholder="$, €, £..."
+                  maxLength={5}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="exchangeRate">Exchange Rate (to USD)</Label>
+                <Input
+                  id="exchangeRate"
                   type="number"
-                  step="0.1"
-                  min="0.1"
-                  value={formData.multiplier}
-                  onChange={(e) => setFormData({ ...formData, multiplier: parseFloat(e.target.value) || 1 })}
+                  step="0.000001"
+                  min="0.000001"
+                  value={formData.exchangeRate}
+                  onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) || 1 })}
                   placeholder="1.0"
                 />
               </div>
@@ -184,7 +199,7 @@ const Industries: React.FC = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : editingIndustry ? 'Update' : 'Create'}
+                  {isSubmitting ? 'Saving...' : editingCurrency ? 'Update' : 'Create'}
                 </Button>
               </div>
             </form>
@@ -195,7 +210,7 @@ const Industries: React.FC = () => {
       <div className="flex items-center space-x-2">
         <Search className="w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search industries..."
+          placeholder="Search currencies..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
@@ -203,23 +218,24 @@ const Industries: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading industries...</div>
+        <div className="text-center py-8">Loading currencies...</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredIndustries.map((industry) => (
-            <Card key={industry.id}>
+          {filteredCurrencies.map((currency) => (
+            <Card key={currency.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium">
-                  {industry.name}
+                <CardTitle className="text-lg font-medium flex items-center gap-2">
+                  <span className="text-2xl">{currency.symbol}</span>
+                  {currency.code}
                 </CardTitle>
                 <div className="flex items-center space-x-1">
-                  <Badge variant={industry.isActive ? 'default' : 'secondary'}>
-                    {industry.isActive ? 'Active' : 'Inactive'}
+                  <Badge variant={currency.isActive ? 'default' : 'secondary'}>
+                    {currency.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleEdit(industry)}
+                    onClick={() => handleEdit(currency)}
                   >
                     <Edit2 className="w-4 h-4" />
                   </Button>
@@ -231,15 +247,15 @@ const Industries: React.FC = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Industry</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Currency</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{industry.name}"? This action cannot be undone.
+                          Are you sure you want to delete "{currency.name}" ({currency.code})? This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => handleDelete(industry.id)}
+                          onClick={() => handleDelete(currency.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Delete
@@ -250,12 +266,10 @@ const Industries: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {industry.description || 'No description'}
-                </p>
+                <p className="text-sm font-medium mb-2">{currency.name}</p>
                 <div className="flex justify-between text-sm">
-                  <span>Multiplier:</span>
-                  <span className="font-medium">{industry.multiplier}x</span>
+                  <span>Exchange Rate:</span>
+                  <span className="font-medium">{currency.exchangeRate} USD</span>
                 </div>
               </CardContent>
             </Card>
@@ -263,13 +277,13 @@ const Industries: React.FC = () => {
         </div>
       )}
 
-      {filteredIndustries.length === 0 && !isLoading && (
+      {filteredCurrencies.length === 0 && !isLoading && (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No industries found</p>
+          <p className="text-muted-foreground">No currencies found</p>
         </div>
       )}
     </div>
   );
 };
 
-export default Industries;
+export default Currencies;
