@@ -27,6 +27,11 @@ export interface SoftwareType {
   id: number;
   name: string;
   basePrice: number;
+  estimatedHours: number;
+  complexity: string;
+  price: Price;
+  description: string;
+  type: string
 }
 
 // Feature interface
@@ -51,6 +56,9 @@ export interface TechStack {
   backend: string;
   frontend: string;
   mobile?: string;
+  database?: string;
+  cloud?: string;
+  other?: string;
 }
 
 // Static data response interface
@@ -61,6 +69,9 @@ export interface StaticData {
     backend: Array<{id: number, name: string}>;
     frontend: Array<{id: number, name: string}>;
     mobile: Array<{id: number, name: string}>;
+    database: Array<{id: number, name: string}>;
+    cloud: Array<{id: number, name: string}>;
+    other: Array<{id: number, name: string}>;
   };
   timelines: Timeline[];
   features: Record<string, Feature[]> | Feature[];

@@ -357,7 +357,7 @@ const getAllDataForEstimation = async (req, res, next) => {
       }),
       SoftwareType.findAll({
         where: { isActive: true },
-        attributes: ['id', 'name', 'category', 'basePrice', 'complexity', 'description'],
+        attributes: ['id', 'name', 'category', 'basePrice', 'complexity', 'description', "type"],
         order: [['name', 'ASC']]
       }),
       TechStack.findAll({
@@ -397,7 +397,8 @@ const getAllDataForEstimation = async (req, res, next) => {
         category: item.category,
         basePrice: parseFloat(item.basePrice) || 0,
         complexity: item.complexity,
-        description: item.description
+        description: item.description,
+        type: item.type
       })),
 
       techStacks: techStacks.reduce((acc, tech) => {

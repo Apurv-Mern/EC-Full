@@ -29,6 +29,7 @@ export interface SoftwareType {
   id: number;
   name: string;
   category: 'web' | 'mobile' | 'desktop' | 'api' | 'other';
+  type: 'OS' | 'software';
   basePrice?: number;
   complexity: 'simple' | 'medium' | 'complex';
   description?: string;
@@ -40,6 +41,7 @@ export interface SoftwareType {
 export interface CreateSoftwareTypeRequest {
   name: string;
   category: 'web' | 'mobile' | 'desktop' | 'api' | 'other';
+  type: 'OS' | 'software';
   basePrice?: number;
   complexity: 'simple' | 'medium' | 'complex';
   description?: string;

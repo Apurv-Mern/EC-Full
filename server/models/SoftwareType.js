@@ -21,6 +21,11 @@ const SoftwareType = sequelize.define('SoftwareType', {
         type: DataTypes.ENUM('web', 'mobile', 'desktop', 'api', 'other'),
         allowNull: false
     },
+    type: {
+        type: DataTypes.ENUM('OS', 'software'),
+        allowNull: false,
+        defaultValue: 'software'
+    },
     basePrice: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,
@@ -46,6 +51,7 @@ const SoftwareType = sequelize.define('SoftwareType', {
     indexes: [
         { fields: ['name'] },
         { fields: ['category'] },
+        { fields: ['type'] },
         { fields: ['complexity'] },
         { fields: ['isActive'] }
     ]

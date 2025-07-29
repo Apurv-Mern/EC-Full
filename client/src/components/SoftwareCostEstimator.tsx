@@ -27,7 +27,7 @@ const SoftwareCostEstimator = () => {
   const [formData, setFormData] = useState<EstimatorFormData>({
     industries: [],
     softwareType: [],
-    techStack: { backend: "", frontend: "", mobile: "" },
+    techStack: { backend: "", frontend: "", mobile: "", database: "", cloud: "", other: "" },
     timeline: null,
     features: [],
     currency: "USD" as Currency,
@@ -45,7 +45,7 @@ const SoftwareCostEstimator = () => {
   // Destructure API data
   const industries = data?.industries || [];
   const softwareTypes = data?.softwareTypes || [];
-  const techStacks = data?.techStacks || { backend: [], frontend: [], mobile: [] };
+  const techStacks = data?.techStacks || { backend: [], frontend: [], mobile: [], database: [], cloud: [], other: [] };
   const timelines = data?.timelines || [];
   const features = data?.features || {};
   const currencies = data?.currencies || [];
@@ -236,38 +236,102 @@ const SoftwareCostEstimator = () => {
         );
 
       case 2:
+        // Separate OS and Software types
+        const osTypes = softwareTypes.filter(type => type.type === 'OS');
+        const softwareTypesFiltered = softwareTypes.filter(type => type.type === 'software');
+
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Choose Software Type</h2>
+              {/* <h2 className="text-2xl font-bold mb-2">Choose Software Type</h2>
               <p className="text-muted-foreground">
                 Select the type of software you need (you can select multiple)
-              </p>
+              </p> */}
             </div>
-            <div className="grid gap-4">
-              {softwareTypes.map((type) => {
-                const isSelected = formData.softwareType.some(st => st.id === type.id);
-                return (
-                  <Button
-                    key={type.id}
-                    variant={isSelected ? "default" : "outline"}
-                    className="h-16 justify-between"
-                    onClick={() => {
-                      const newSoftwareTypes = isSelected
-                        ? formData.softwareType.filter(st => st.id !== type.id)
-                        : [...formData.softwareType, type];
-                      setFormData({ ...formData, softwareType: newSoftwareTypes });
-                    }}
-                  >
-                    <span>{type.name}</span>
-                    <span className="font-bold">
-                      From {getCurrencySymbol()}
-                      {formatPrice((type.basePrice || 0) * getCurrencyRate())}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
+
+            {/* OS Section */}
+            {osTypes.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Select OS Type
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3">
+                    {osTypes.map((type) => {
+                      const isSelected = formData.softwareType.some(st => st.id === type.id);
+                      return (
+                        <Button
+                          key={type.id}
+                          variant={isSelected ? "default" : "outline"}
+                          className="h-16 justify-between"
+                          onClick={() => {
+                            const newSoftwareTypes = isSelected
+                              ? formData.softwareType.filter(st => st.id !== type.id)
+                              : [...formData.softwareType, type];
+                            setFormData({ ...formData, softwareType: newSoftwareTypes });
+                          }}
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{type.name}</span>
+                            {type.description && (
+                              <span className="text-sm text-muted-foreground">{type.description}</span>
+                            )}
+                          </div>
+                          <span className="font-bold">
+                            From {getCurrencySymbol()}
+                            {formatPrice((type.basePrice || 0) * getCurrencyRate())}
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Software Section */}
+            {softwareTypesFiltered.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Select Software Type
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3">
+                    {softwareTypesFiltered.map((type) => {
+                      const isSelected = formData.softwareType.some(st => st.id === type.id);
+                      return (
+                        <Button
+                          key={type.id}
+                          variant={isSelected ? "default" : "outline"}
+                          className="h-16 justify-between"
+                          onClick={() => {
+                            const newSoftwareTypes = isSelected
+                              ? formData.softwareType.filter(st => st.id !== type.id)
+                              : [...formData.softwareType, type];
+                            setFormData({ ...formData, softwareType: newSoftwareTypes });
+                          }}
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{type.name}</span>
+                            {type.description && (
+                              <span className="text-sm text-muted-foreground">{type.description}</span>
+                            )}
+                          </div>
+                          <span className="font-bold">
+                            From {getCurrencySymbol()}
+                            {formatPrice((type.basePrice || 0) * getCurrencyRate())}
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         );
 
@@ -286,12 +350,12 @@ const SoftwareCostEstimator = () => {
               <div>
                 <h3 className="font-semibold mb-3">Backend Technology</h3>
                 <div className="flex flex-wrap gap-2">
-                  {techStacks.backend.map(({ id, name }: any) => {
+                  {techStacks?.backend?.map(({ id, name }: any) => {
                     return (
                       <Button
                         key={id}
                         variant={
-                          formData.techStack.backend === name
+                          formData?.techStack?.backend === name
                             ? "default"
                             : "outline"
                         }
@@ -312,11 +376,11 @@ const SoftwareCostEstimator = () => {
               <div>
                 <h3 className="font-semibold mb-3">Frontend Technology</h3>
                 <div className="flex flex-wrap gap-2">
-                  {techStacks.frontend.map(({ id, name }: any) => (
+                  {techStacks?.frontend?.map(({ id, name }: any) => (
                     <Button
                       key={id}
                       variant={
-                        formData.techStack.frontend === name
+                        formData?.techStack?.frontend === name
                           ? "default"
                           : "outline"
                       }
@@ -325,6 +389,54 @@ const SoftwareCostEstimator = () => {
                         setFormData({
                           ...formData,
                           techStack: { ...formData.techStack, frontend: name },
+                        })
+                      }
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3">Mobile Technology</h3>
+                <div className="flex flex-wrap gap-2">
+                  {techStacks?.mobile?.map(({ id, name }: any) => (
+                    <Button
+                      key={id}
+                      variant={
+                        formData?.techStack?.mobile === name
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          techStack: { ...formData.techStack, mobile: name },
+                        })
+                      }
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3">Database Technology</h3>
+                <div className="flex flex-wrap gap-2">
+                  {techStacks?.database?.map(({ id, name }: any) => (
+                    <Button
+                      key={id}
+                      variant={
+                        formData.techStack?.database === name
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          techStack: { ...formData.techStack, database: name },
                         })
                       }
                     >
@@ -532,19 +644,24 @@ const SoftwareCostEstimator = () => {
                       Technology Stack:
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {formData.techStack.backend && (
+                      {formData?.techStack?.backend && (
                         <div>
-                          <span className="font-medium">Backend:</span> {formData.techStack.backend}
+                          <span className="font-medium">Backend:</span> {formData?.techStack?.backend}
                         </div>
                       )}
-                      {formData.techStack.frontend && (
+                      {formData?.techStack?.frontend && (
                         <div>
-                          <span className="font-medium">Frontend:</span> {formData.techStack.frontend}
+                          <span className="font-medium">Frontend:</span> {formData?.techStack?.frontend}
                         </div>
                       )}
-                      {formData.techStack.mobile && (
+                      {formData?.techStack?.mobile && (
                         <div>
-                          <span className="font-medium">Mobile:</span> {formData.techStack.mobile}
+                          <span className="font-medium">Mobile:</span> {formData?.techStack?.mobile}
+                        </div>
+                      )}
+                      {formData?.techStack?.database && (
+                        <div>
+                          <span className="font-medium">Database:</span> {formData?.techStack?.database}
                         </div>
                       )}
                     </div>
