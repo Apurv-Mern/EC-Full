@@ -6,6 +6,10 @@ import config from './config/config.js';
 // Import routes
 import estimationRoutes from './routes/estimationRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
+import featureRoutes from './routes/featureRoutes.js';
+import softwareTypeRoutes from './routes/softwareTypeRoutes.js';
+import techStackRoutes from './routes/techStackRoutes.js';
+import timelineRoutes from './routes/timelineRoutes.js';
 
 // Import middleware
 import errorHandler from './middleware/errorHandler.js';
@@ -24,6 +28,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // API routes
 app.use('/api/estimations', estimationRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/features', featureRoutes);
+app.use('/api/software-types', softwareTypeRoutes);
+app.use('/api/tech-stacks', techStackRoutes);
+app.use('/api/timelines', timelineRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
@@ -35,7 +43,7 @@ const startServer = async () => {
     // Test database connection
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
-    await sequelize.sync({ alter: config.nodeEnv === 'development' });
+    await sequelize.sync({ alter: false });
     console.log('Database models synced successfully.');
     // Start listening
     app.listen(config.port, () => {

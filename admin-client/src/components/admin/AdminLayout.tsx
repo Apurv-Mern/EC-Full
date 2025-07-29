@@ -25,8 +25,8 @@ const navigation = [
   { name: "Delivery Timeline", href: "/admin/timeline", icon: Clock },
   { name: "Feature Library", href: "/admin/features", icon: Package },
   { name: "Currency Management", href: "/admin/currency", icon: DollarSign },
-  { name: "Cost Formula", href: "/admin/cost-formula", icon: Settings },
-  { name: "Content Management", href: "/admin/content", icon: FileText },
+  // { name: "Cost Formula", href: "/admin/cost-formula", icon: Settings },
+  // { name: "Content Management", href: "/admin/content", icon: FileText },
 ];
 
 export function AdminLayout() {

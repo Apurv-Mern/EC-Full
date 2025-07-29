@@ -19,7 +19,7 @@ const config = {
 
   // CORS configuration
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:8080',
+    origin: process.env.CLIENT_URL || 'http://localhost:8080/admin',
     credentials: true
   },
 
