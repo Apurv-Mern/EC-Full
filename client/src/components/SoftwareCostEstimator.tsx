@@ -585,9 +585,9 @@ const SoftwareCostEstimator = () => {
                     })
                   }
                 >
-                  <span className="text-4xl mb-1 block leading-none">
+                  {/* <span className="text-4xl mb-1 block leading-none">
                     {currency.flag}
-                  </span>
+                  </span> */}
                   <span className="font-bold text-lg tracking-wide">
                     {currency.code}
                   </span>
