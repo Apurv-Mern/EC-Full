@@ -46,7 +46,7 @@ const SoftwareTypeSelect = ({ data, onDataChange, onNext }: SoftwareTypeSelectPr
     const updatedTypes = selectedTypes.includes(typeId)
       ? selectedTypes.filter(id => id !== typeId)
       : [...selectedTypes, typeId];
-    
+
     setSelectedTypes(updatedTypes);
     onDataChange({ softwareTypes: updatedTypes });
   };
@@ -98,11 +98,10 @@ const SoftwareTypeSelect = ({ data, onDataChange, onNext }: SoftwareTypeSelectPr
               {osTypes.map((type) => (
                 <div
                   key={type.id}
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
-                    selectedTypes.includes(type.id.toString())
+                  className={`border rounded-lg p-4 cursor-pointer transition-colors hover:bg-muted/50 ${selectedTypes.includes(type.id.toString())
                       ? 'border-primary bg-primary/5'
                       : 'border-border'
-                  }`}
+                    }`}
                   onClick={() => handleTypeToggle(type.id.toString())}
                 >
                   <div className="flex items-start space-x-3">
@@ -158,11 +157,10 @@ const SoftwareTypeSelect = ({ data, onDataChange, onNext }: SoftwareTypeSelectPr
               {softwareTypesFiltered.map((type) => (
                 <div
                   key={type.id}
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
-                    selectedTypes.includes(type.id.toString())
+                  className={`border rounded-lg p-4 cursor-pointer transition-colors hover:bg-muted/50 ${selectedTypes.includes(type.id.toString())
                       ? 'border-primary bg-primary/5'
                       : 'border-border'
-                  }`}
+                    }`}
                   onClick={() => handleTypeToggle(type.id.toString())}
                 >
                   <div className="flex items-start space-x-3">

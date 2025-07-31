@@ -26,17 +26,17 @@ const ContactSection = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error("Please enter your name");
       return;
     }
-    
+
     if (!formData.email.trim()) {
       toast.error("Please enter your email");
       return;
     }
-    
+
     if (!formData.message.trim()) {
       toast.error("Please enter your message");
       return;
@@ -83,10 +83,10 @@ const ContactSection = () => {
           <h2 className="text-5xl font-bold mb-6 gradient-text">
             Let's Build Something Amazing
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          {/* <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Ready to start your gaming project? Get in touch and let's discuss
             how we can bring your vision to life.
-          </p>
+          </p> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -212,7 +212,7 @@ const ContactSection = () => {
                   <div>
                     <p className="font-medium">Email</p>
                     <p className="text-muted-foreground">
-                     estimation@gmail.com
+                      estimation@gmail.com
                     </p>
                   </div>
                 </div>

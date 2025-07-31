@@ -20,8 +20,8 @@ const config = {
 
   // CORS configuration
   cors: {
-    origin: ["*"],
-    credentials: true
+    origin: "*",
+    // credentials: true
   },
 
 

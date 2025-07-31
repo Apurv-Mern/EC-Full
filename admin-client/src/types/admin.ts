@@ -38,6 +38,19 @@ export interface SoftwareType {
   updatedAt: string;
 }
 
+export interface OSType {
+  id: number;
+  name: string;
+  category: 'web' | 'mobile' | 'desktop' | 'api' | 'other';
+  type: 'OS' | 'software';
+  basePrice?: number;
+  complexity: 'simple' | 'medium' | 'complex';
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreateSoftwareTypeRequest {
   name: string;
   category: 'web' | 'mobile' | 'desktop' | 'api' | 'other';

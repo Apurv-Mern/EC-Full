@@ -276,7 +276,7 @@ const SoftwareCostEstimator = () => {
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{type.name}</span>
                             {type.description && (
-                              <span className="text-sm text-muted-foreground">{type.description}</span>
+                              <span className="text-xs">{type.description}</span>
                             )}
                           </div>
                           <span className="font-bold">
@@ -318,7 +318,7 @@ const SoftwareCostEstimator = () => {
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{type.name}</span>
                             {type.description && (
-                              <span className="text-sm text-muted-foreground">{type.description}</span>
+                              <span className="text-sm ">{type.description}</span>
                             )}
                           </div>
                           <span className="font-bold">
@@ -354,16 +354,16 @@ const SoftwareCostEstimator = () => {
                     return (
                       <Button
                         key={id}
-                        variant={
-                          formData?.techStack?.backend === name
-                            ? "default"
-                            : "outline"
-                        }
+                        variant={formData.techStack.backend === name ? "default" : "outline"}
                         size="sm"
                         onClick={() =>
                           setFormData({
                             ...formData,
-                            techStack: { ...formData.techStack, backend: name },
+                            techStack: {
+                              ...formData.techStack,
+                              backend:
+                                formData.techStack.backend === name ? "" : name,
+                            },
                           })
                         }
                       >
@@ -388,7 +388,7 @@ const SoftwareCostEstimator = () => {
                       onClick={() =>
                         setFormData({
                           ...formData,
-                          techStack: { ...formData.techStack, frontend: name },
+                          techStack: { ...formData.techStack, frontend: formData.techStack.frontend === name ? "" : name },
                         })
                       }
                     >
@@ -412,7 +412,7 @@ const SoftwareCostEstimator = () => {
                       onClick={() =>
                         setFormData({
                           ...formData,
-                          techStack: { ...formData.techStack, mobile: name },
+                          techStack: { ...formData.techStack, mobile: formData.techStack.mobile === name ? "" : name },
                         })
                       }
                     >
@@ -436,7 +436,7 @@ const SoftwareCostEstimator = () => {
                       onClick={() =>
                         setFormData({
                           ...formData,
-                          techStack: { ...formData.techStack, database: name },
+                          techStack: { ...formData.techStack, database: formData.techStack.database === name ? "" : name },
                         })
                       }
                     >
@@ -591,7 +591,7 @@ const SoftwareCostEstimator = () => {
                   <span className="font-bold text-lg tracking-wide">
                     {currency.code}
                   </span>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  <span className="text-xs whitespace-nowrap">
                     {currency.name}
                   </span>
                 </Button>
@@ -711,7 +711,7 @@ const SoftwareCostEstimator = () => {
                   </div>
 
                   <div className="flex gap-2 pt-4">
-                    <Button
+                    {/* <Button
                       className="flex-1"
                       onClick={() => handleCreateEstimation(false)}
                       disabled={createEstimationMutation.isPending}
@@ -722,15 +722,15 @@ const SoftwareCostEstimator = () => {
                         <Download className="w-4 h-4 mr-2" />
                       )}
                       Download PDF
-                    </Button>
-                    <Button
+                    </Button> */}
+                    {/* <Button
                       variant="outline"
                       className="flex-1"
                       onClick={() => setShowContactForm(true)}
                     >
                       <Mail className="w-4 h-4 mr-2" />
                       Email Quote
-                    </Button>
+                    </Button> */}
                   </div>
                   <Button
                     size="lg"

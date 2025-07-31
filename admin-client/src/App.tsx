@@ -16,6 +16,7 @@ import Currencies from "./pages/admin/Currencies";
 import CostFormula from "./pages/admin/CostFormula";
 import Content from "./pages/admin/Content";
 import Estimations from "./pages/admin/Estimations";
+import OsTypes from "./pages/admin/OsTypes";
 
 const queryClient = new QueryClient();
 
@@ -28,9 +29,10 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} />
+            <Route index element={<Industries />} />
             <Route path="industries" element={<Industries />} />
             <Route path="software-types" element={<SoftwareTypes />} />
+            <Route path="os-types" element={<OsTypes />} />
             <Route path="tech-stacks" element={<TechStacks />} />
             <Route path="timeline" element={<Timeline />} />
             <Route path="features" element={<Features />} />

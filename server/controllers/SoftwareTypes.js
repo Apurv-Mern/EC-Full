@@ -24,14 +24,15 @@ const getSoftwareTypeById = async (req, res, next) => {
 
 const createSoftwareType = async (req, res, next) => {
     try {
-        const { name, category, basePrice, complexity, description, isActive } = req.body;
+        const { name, category, basePrice, complexity, description, isActive, type } = req.body;
         const softwareType = await SoftwareType.create({
             name,
             category,
             basePrice,
             complexity,
             description,
-            isActive
+            isActive,
+            type
         });
         res.status(201).json(softwareType);
     } catch (error) {
@@ -42,7 +43,7 @@ const createSoftwareType = async (req, res, next) => {
 const updateSoftwareType = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, category, basePrice, complexity, description, isActive } = req.body;
+        const { name, category, basePrice, complexity, description, isActive, type } = req.body;
         const softwareType = await SoftwareType.findByPk(id);
         if (!softwareType) {
             return res.status(404).json({ message: 'Software Type not found' });
@@ -55,6 +56,7 @@ const updateSoftwareType = async (req, res, next) => {
         softwareType.complexity = complexity;
         softwareType.description = description;
         softwareType.isActive = isActive;
+        softwareType.type = type; // Preserve existing type if not provided
 
         await softwareType.save();
         res.json(softwareType);

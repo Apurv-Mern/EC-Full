@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useSoftwareTypes, useCreateSoftwareType, useUpdateSoftwareType, useDeleteSoftwareType } from "@/hooks/useApi";
-import { SoftwareType, CreateSoftwareTypeRequest } from "@/types/admin";
+import { SoftwareType } from "@/types/admin";
 
 const categories = ["web", "mobile", "desktop", "api", "other"] as const;
 const complexityOptions = ["simple", "medium", "complex"] as const;
@@ -30,6 +30,7 @@ export default function SoftwareTypes() {
   const [formData, setFormData] = useState<{
     name: string;
     category: 'web' | 'mobile' | 'desktop' | 'api' | 'other';
+    type: "software" | "OS";
     basePrice?: number;
     complexity: 'simple' | 'medium' | 'complex';
     description?: string;
@@ -37,6 +38,7 @@ export default function SoftwareTypes() {
   }>({
     name: "",
     category: "web",
+    type: "software",
     basePrice: 5000,
     complexity: "medium",
     description: "",
@@ -61,7 +63,7 @@ export default function SoftwareTypes() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (editingSoftwareType) {
       updateSoftwareType.mutate(
         { id: editingSoftwareType.id, data: formData },
@@ -111,6 +113,7 @@ export default function SoftwareTypes() {
     setFormData({
       name: softwareType.name,
       category: softwareType.category,
+      type: softwareType.type,
       basePrice: softwareType.basePrice || 0,
       complexity: softwareType.complexity,
       description: softwareType.description || "",
@@ -147,6 +150,7 @@ export default function SoftwareTypes() {
     setFormData({
       name: "",
       category: "web",
+      type: "software",
       basePrice: 5000,
       complexity: "medium",
       description: "",
@@ -211,8 +215,21 @@ export default function SoftwareTypes() {
                     ))}
                   </select>
                 </div>
+                {/* <div>
+                  <Label htmlFor="type">Type</Label>
+                  <select
+                    id="type"
+                    value={formData.type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as "OS" | "software" }))}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                    ))}
+                  </select>
+                </div> */}
               </div>
-              
+
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -223,7 +240,7 @@ export default function SoftwareTypes() {
                   rows={3}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="complexity">Complexity Level</Label>
@@ -250,7 +267,7 @@ export default function SoftwareTypes() {
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -261,10 +278,10 @@ export default function SoftwareTypes() {
                 />
                 <Label htmlFor="isActive">Active</Label>
               </div>
-              
+
               <div className="flex gap-2">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1"
                   disabled={createSoftwareType.isPending || updateSoftwareType.isPending}
                 >
@@ -317,63 +334,66 @@ export default function SoftwareTypes() {
 
       {/* Software Types List */}
       <div className="grid gap-4">
-        {filteredTypes.map((type) => (
-          <Card key={type.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CardTitle className="text-lg">{type.name}</CardTitle>
-                  <Badge variant="outline">
-                    {type.category.charAt(0).toUpperCase() + type.category.slice(1)}
-                  </Badge>
-                  <Badge className={getComplexityColor(type.complexity)}>
-                    {type.complexity.charAt(0).toUpperCase() + type.complexity.slice(1)}
-                  </Badge>
-                  <Badge variant={type.isActive ? "default" : "secondary"}>
-                    {type.isActive ? "Active" : "Inactive"}
-                  </Badge>
+        {filteredTypes
+          .filter(type => type.type === "software")
+          .map(type => (
+            <Card key={type.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-lg">{type.name}</CardTitle>
+                    <Badge variant="outline">
+                      {type.category.charAt(0).toUpperCase() + type.category.slice(1)}
+                    </Badge>
+                    <Badge className={getComplexityColor(type.complexity)}>
+                      {type.complexity.charAt(0).toUpperCase() + type.complexity.slice(1)}
+                    </Badge>
+                    <Badge variant={type.isActive ? "default" : "secondary"}>
+                      {type.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(type)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(type.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(type)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(type.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">{type.description}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Category</p>
+                    <p className="text-lg font-semibold">{type.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Base Price</p>
+                    <p className="text-lg font-semibold">${type.basePrice?.toLocaleString() || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Complexity</p>
+                    <p className="text-lg font-semibold">{type.complexity}</p>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-3">{type.description}</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Category</p>
-                  <p className="text-lg font-semibold">{type.category}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Base Price</p>
-                  <p className="text-lg font-semibold">${type.basePrice?.toLocaleString() || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Complexity</p>
-                  <p className="text-lg font-semibold">{type.complexity}</p>
-                </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground">Created: {new Date(type.createdAt).toLocaleDateString()}</p>
-            </CardContent>
-          </Card>
-        ))}
+                <p className="text-sm text-muted-foreground">
+                  Created: {new Date(type.createdAt).toLocaleDateString()}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+
       </div>
 
       {filteredTypes.length === 0 && (
